@@ -1,2 +1,52 @@
-# docker-compose.yml for flight booking system
-# TODO: Add docker-compose content
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Inventory Service
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: flight-postgres-db
+    environment:
+      POSTGRES_DB: flight_inventory_db
+      POSTGRES_USER: flight_user
+      POSTGRES_PASSWORD: flight_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  # Redis for Search Service Caching
+  redis-cache:
+    image: redis:7-alpine
+    container_name: flight-redis-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - flight-network
+
+  # Inventory Service
+  inventory-service:
+    build: ../inventory-service
+    container_name: flight-inventory-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/flight_inventory_db
+      SPRING_DATASOURCE_USERNAME: flight_user
+      SPRING_DATASOURCE_PASSWORD: flight_password
+    depends_on:
+      - postgres-db
+    networks:
+      - flight-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  flight-network:
+    driver: bridge
