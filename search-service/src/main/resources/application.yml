@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: search-service
+
+inventory:
+  service:
+    url: http://inventory-service:8082
+
+logging:
+  level:
+    com.fbs.search: DEBUG
