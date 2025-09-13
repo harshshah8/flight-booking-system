@@ -1,2 +1,87 @@
-# docker-compose.yml for flight booking system
-# TODO: Add docker-compose content
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Inventory Service
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: flight-postgres-db
+    environment:
+      POSTGRES_DB: flight_inventory_db
+      POSTGRES_USER: flight_user
+      POSTGRES_PASSWORD: flight_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flight_user -d flight_inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for Search Service Caching
+  redis-cache:
+    image: redis:7-alpine
+    container_name: flight-redis-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Inventory Service
+  inventory-service:
+    build: ../inventory-service
+    container_name: flight-inventory-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/flight_inventory_db
+      SPRING_DATASOURCE_USERNAME: flight_user
+      SPRING_DATASOURCE_PASSWORD: flight_password
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/8082' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Search Service
+  search-service:
+    build: ../search-service
+    container_name: flight-search-service
+    ports:
+      - "8081:8081"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8082
+      SPRING_DATA_REDIS_HOST: redis-cache
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    networks:
+      - flight-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  flight-network:
+    driver: bridge

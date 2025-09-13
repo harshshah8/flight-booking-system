@@ -1,0 +1,19 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: search-service
+  data:
+    redis:
+      host: redis-cache
+      port: 6379
+      timeout: 2000ms
+
+inventory:
+  service:
+    url: http://inventory-service:8082
+
+logging:
+  level:
+    com.fbs.search: DEBUG
