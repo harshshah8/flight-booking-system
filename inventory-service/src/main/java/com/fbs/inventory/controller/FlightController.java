@@ -2,6 +2,8 @@ package com.fbs.inventory.controller;
 
 import com.fbs.inventory.entity.Flight;
 import com.fbs.inventory.service.FlightService;
+import jakarta.annotation.Nonnull;
+import org.springframework.lang.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +25,7 @@ public class FlightController {
     }
 
     @GetMapping("/{flightId}")
-    public ResponseEntity<Flight> getFlightById(@PathVariable UUID flightId) {
+    public ResponseEntity<Flight> getFlightById(@PathVariable @Nonnull UUID flightId) {
         Flight flight = flightService.getFlightById(flightId);
         if (flight != null) {
             return ResponseEntity.ok(flight);
