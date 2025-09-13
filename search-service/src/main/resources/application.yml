@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: search-service
+  data:
+    redis:
+      host: redis-cache
+      port: 6379
+      timeout: 2000ms
 
 inventory:
   service:

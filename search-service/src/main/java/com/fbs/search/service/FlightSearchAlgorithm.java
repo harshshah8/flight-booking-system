@@ -27,10 +27,14 @@ public class FlightSearchAlgorithm {
         if (shortestPath != null) {
             kPaths.add(shortestPath);
             if (k == 1) return kPaths;
+        } else {
+            // No path found at all
+            return kPaths; // Return empty list
         }
         
         // Yen's algorithm for k-1 additional paths
         for (int i = 1; i < k; i++) {
+            if (i - 1 >= kPaths.size()) break; // Safety check
             FlightPath lastPath = kPaths.get(i - 1);
             
             // For each node in the previous k-shortest path except the last

@@ -15,6 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flight_user -d flight_inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Redis for Search Service Caching
   redis-cache:
@@ -39,7 +44,32 @@ services:
       SPRING_DATASOURCE_USERNAME: flight_user
       SPRING_DATASOURCE_PASSWORD: flight_password
     depends_on:
-      - postgres-db
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Search Service
+  search-service:
+    build: ../search-service
+    container_name: flight-search-service
+    ports:
+      - "8081:8081"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8082
+      SPRING_DATA_REDIS_HOST: redis-cache
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
     networks:
       - flight-network
 
