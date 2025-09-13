@@ -1,0 +1,98 @@
+@startuml Flight Search Sequence Diagram
+
+title Flight Search System - Sequence Diagram
+
+actor User
+participant "Search Service" as SearchService
+database "Redis Cache" as Redis
+participant "Inventory Service" as InventoryService
+database "PostgreSQL DB" as Database
+
+== System Startup (Pre-computation Phase) ==
+
+SearchService -> InventoryService: 1. GET /v1/flights/all
+activate InventoryService
+InventoryService -> Database: 2. SELECT * FROM flights
+activate Database
+Database --> InventoryService: 3. ~500 flight records
+deactivate Database
+InventoryService --> SearchService: 4. List<Flight>
+deactivate InventoryService
+
+SearchService -> SearchService: 5. Build Flight Graphs\n(Cost & Duration weighted)
+
+SearchService -> SearchService: 6. Run Yen's K-shortest Path Algorithm\nfor all city pairs (29x28=812 pairs)
+
+loop For each connected city pair
+    SearchService -> SearchService: 7. Find top 10 cheapest paths
+    SearchService -> SearchService: 8. Find top 10 fastest paths
+    
+    loop For next 180 days
+        SearchService -> Redis: 9. Check if key exists\nAMD:BLR:2024-01-15:CHEAPEST
+        activate Redis
+        
+        alt Key doesn't exist
+            Redis --> SearchService: 10. false
+            SearchService -> Redis: 11. SET key with cached paths + TTL
+            Redis --> SearchService: 12. OK
+        else Key exists
+            Redis --> SearchService: 10. true
+            note right: Skip to avoid resource waste
+        end
+        deactivate Redis
+    end
+end
+
+SearchService -> SearchService: Pre-computation Complete!\n~100K cache entries created
+
+== User Search Request ==
+
+User -> SearchService: 13. GET /v1/search?source=AMD&destination=BLR\n&date=2024-01-15&criteria=CHEAPEST
+activate SearchService
+
+SearchService -> SearchService: 14. Validate parameters\n(source, destination, date, criteria)
+
+SearchService -> SearchService: 15. Build cache key:\n"AMD:BLR:2024-01-15:CHEAPEST"
+
+SearchService -> Redis: 16. GET "AMD:BLR:2024-01-15:CHEAPEST"
+activate Redis
+
+alt Cache Hit - Paths exist
+    Redis --> SearchService: 17. CachedSearchResult\n{paths: [path1, path2...], computedAt: timestamp}
+    SearchService --> User: 18. 200 OK\nJSON response with flight paths
+    note right: Instant response (~5ms)
+    
+else Cache Miss - No paths available  
+    Redis --> SearchService: 17. null
+    SearchService --> User: 18. 204 No Content
+    note right: Route not available/not cached
+    
+else Invalid parameters
+    SearchService --> User: 18. 400 Bad Request
+    note right: Invalid criteria or date format
+end
+
+deactivate Redis
+deactivate SearchService
+
+== Response Format ==
+
+note over User
+{
+  "paths": [
+    {
+      "cost": 6800,
+      "duration": 150,
+      "flights": ["flight-uuid-1"]
+    },
+    {
+      "cost": 7000,
+      "duration": 195, 
+      "flights": ["flight-uuid-2", "flight-uuid-3"]
+    }
+  ],
+  "computedAt": "2025-09-13T13:48:00Z"
+}
+end note
+
+@enduml
