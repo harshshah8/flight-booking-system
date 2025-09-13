@@ -2,6 +2,7 @@ package com.fbs.inventory.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -39,10 +40,10 @@ public class Flight {
     private FlightStatus flightStatus;
     
     @Column(name = "departure_time", nullable = false)
-    private LocalDateTime departureTime;
+    private LocalTime departureTime;
     
     @Column(name = "arrival_time", nullable = false)
-    private LocalDateTime arrivalTime;
+    private LocalTime arrivalTime;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -56,7 +57,7 @@ public class Flight {
     public Flight(String flightNumber, String source, String destination, 
                   Double cost, Integer duration, Integer availableSeats, 
                   Integer occupiedSeats, FlightStatus flightStatus, 
-                  LocalDateTime departureTime, LocalDateTime arrivalTime) {
+                  LocalTime departureTime, LocalTime arrivalTime) {
         this.flightNumber = flightNumber;
         this.source = source;
         this.destination = destination;
@@ -99,11 +100,11 @@ public class Flight {
     public FlightStatus getFlightStatus() { return flightStatus; }
     public void setFlightStatus(FlightStatus flightStatus) { this.flightStatus = flightStatus; }
     
-    public LocalDateTime getDepartureTime() { return departureTime; }
-    public void setDepartureTime(LocalDateTime departureTime) { this.departureTime = departureTime; }
+    public LocalTime getDepartureTime() { return departureTime; }
+    public void setDepartureTime(LocalTime departureTime) { this.departureTime = departureTime; }
     
-    public LocalDateTime getArrivalTime() { return arrivalTime; }
-    public void setArrivalTime(LocalDateTime arrivalTime) { this.arrivalTime = arrivalTime; }
+    public LocalTime getArrivalTime() { return arrivalTime; }
+    public void setArrivalTime(LocalTime arrivalTime) { this.arrivalTime = arrivalTime; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
