@@ -1,5 +1,7 @@
 package com.fbs.search.service;
 
+import com.fbs.search.exception.SearchServiceError;
+import com.fbs.search.exception.SearchServiceException;
 import com.fbs.search.model.CachedFlightPath;
 import com.fbs.search.model.CachedSearchResult;
 import com.fbs.search.model.FlightPath;
@@ -30,31 +32,35 @@ public class RedisFlightCacheService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    public void cacheSearchResults(String source, String destination, LocalDate date, 
+    public void cacheSearchResults(String source, String destination, LocalDate date,
                                  String criteria, List<FlightPath> paths) {
         try {
             String key = buildKey(source, destination, date, criteria);
-            
+
             // Check if key already exists - skip if it does
             if (redisTemplate.hasKey(key)) {
                 logger.debug("Key already exists, skipping: {}", key);
                 return;
             }
-            
+
             // Convert FlightPath to CachedFlightPath
             List<CachedFlightPath> cachedPaths = paths.stream()
                     .map(this::convertToCachedPath)
                     .collect(Collectors.toList());
-            
+
             CachedSearchResult result = new CachedSearchResult(cachedPaths);
             String jsonValue = objectMapper.writeValueAsString(result);
-            
+
             redisTemplate.opsForValue().set(key, jsonValue, CACHE_TTL_DAYS, TimeUnit.DAYS);
-            
+
             logger.debug("Cached {} paths for key: {}", paths.size(), key);
-            
+
         } catch (JsonProcessingException e) {
-            logger.error("Error serializing search results for cache", e);
+            logger.error("Error serializing search results for cache: {}", e.getMessage());
+            throw new SearchServiceException(SearchServiceError.CACHE_SERVICE_ERROR);
+        } catch (Exception e) {
+            logger.error("Error caching search results", e);
+            throw new SearchServiceException(SearchServiceError.CACHE_SERVICE_ERROR);
         }
     }
 
