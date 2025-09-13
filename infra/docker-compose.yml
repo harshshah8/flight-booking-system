@@ -32,6 +32,11 @@ services:
       - redis_data:/data
     networks:
       - flight-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   # Inventory Service
   inventory-service:
@@ -49,11 +54,11 @@ services:
     networks:
       - flight-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8082/health || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/8082' || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 40s
 
   # Search Service
   search-service:
@@ -69,7 +74,7 @@ services:
       inventory-service:
         condition: service_healthy
       redis-cache:
-        condition: service_started
+        condition: service_healthy
     networks:
       - flight-network
 
