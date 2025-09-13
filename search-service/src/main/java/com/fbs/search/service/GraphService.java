@@ -62,6 +62,7 @@ public class GraphService {
     private void preComputeAllPaths() {
         logger.info("Starting pre-computation of all K-shortest paths...");
         int totalPairs = 0;
+        int cachedPairs = 0;
         
         for (String source : costGraph.getCities()) {
             for (String destination : costGraph.getCities()) {
@@ -70,15 +71,18 @@ public class GraphService {
                     List<FlightPath> cheapestPaths = searchAlgorithm.findCheapestPaths(costGraph, source, destination, 10);
                     List<FlightPath> fastestPaths = searchAlgorithm.findFastestPaths(durationGraph, source, destination, 10);
                     
-                    // Cache for next 6 months
-                    cacheService.preComputeAndCacheAll(source, destination, cheapestPaths, fastestPaths);
+                    // Only cache if paths exist
+                    if (!cheapestPaths.isEmpty() || !fastestPaths.isEmpty()) {
+                        cacheService.preComputeAndCacheAll(source, destination, cheapestPaths, fastestPaths);
+                        cachedPairs++;
+                    }
                     totalPairs++;
                 }
             }
         }
         
-        logger.info("Pre-computed and cached {} city pairs. Total cache entries: {}", 
-                   totalPairs, cacheService.getCacheSize());
+        logger.info("Pre-computed {} city pairs. Cached {} pairs with connections. Cache entries: {}", 
+                   totalPairs, cachedPairs, cacheService.getCacheSize());
     }
 
     public FlightGraph getCostGraph() {

@@ -35,6 +35,12 @@ public class RedisFlightCacheService {
         try {
             String key = buildKey(source, destination, date, criteria);
             
+            // Check if key already exists - skip if it does
+            if (redisTemplate.hasKey(key)) {
+                logger.debug("Key already exists, skipping: {}", key);
+                return;
+            }
+            
             // Convert FlightPath to CachedFlightPath
             List<CachedFlightPath> cachedPaths = paths.stream()
                     .map(this::convertToCachedPath)
@@ -76,16 +82,38 @@ public class RedisFlightCacheService {
     public void preComputeAndCacheAll(String source, String destination, List<FlightPath> cheapestPaths, 
                                     List<FlightPath> fastestPaths) {
         LocalDate startDate = LocalDate.now();
+        int skippedKeys = 0;
+        int newKeys = 0;
         
-        // Cache for next 6 months
+        // Cache for next 6 months only if paths exist
         for (int days = 0; days < CACHE_TTL_DAYS; days++) {
             LocalDate date = startDate.plusDays(days);
             
-            cacheSearchResults(source, destination, date, "CHEAPEST", cheapestPaths);
-            cacheSearchResults(source, destination, date, "FASTEST", fastestPaths);
+            // Only cache if paths exist
+            if (!cheapestPaths.isEmpty()) {
+                String cheapestKey = buildKey(source, destination, date, "CHEAPEST");
+                if (redisTemplate.hasKey(cheapestKey)) {
+                    skippedKeys++;
+                } else {
+                    cacheSearchResults(source, destination, date, "CHEAPEST", cheapestPaths);
+                    newKeys++;
+                }
+            }
+            if (!fastestPaths.isEmpty()) {
+                String fastestKey = buildKey(source, destination, date, "FASTEST");
+                if (redisTemplate.hasKey(fastestKey)) {
+                    skippedKeys++;
+                } else {
+                    cacheSearchResults(source, destination, date, "FASTEST", fastestPaths);
+                    newKeys++;
+                }
+            }
         }
         
-        logger.info("Pre-computed cache for {}:{} for {} days", source, destination, CACHE_TTL_DAYS);
+        if (skippedKeys > 0) {
+            logger.debug("Pre-computed cache for {}:{} - New: {}, Skipped: {} (already existed)", 
+                        source, destination, newKeys, skippedKeys);
+        }
     }
 
     private String buildKey(String source, String destination, LocalDate date, String criteria) {

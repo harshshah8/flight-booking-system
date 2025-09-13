@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("v1/search")
+@RequestMapping("/v1/search")
 public class SearchController {
 
     @Autowired
