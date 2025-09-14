@@ -1,0 +1,87 @@
+@startuml Flight Cancellation Event Flow
+
+title Flight Cancellation Event Flow - Inventory to Search Service
+
+actor Admin as "Admin User"
+participant AdminController as "AdminController\n(Inventory Service)"
+participant FlightService as "FlightService\n(Inventory Service)"
+participant FlightRepository as "FlightRepository\n(Inventory Service)"
+participant RedisTemplate as "RedisTemplate\n(Inventory Service)"
+participant RedisChannel as "Redis Channel\n(flight-events)"
+participant EventListener as "FlightEventListener\n(Search Service)"
+participant GraphService as "GraphService\n(Search Service)"
+participant SearchRedis as "RedisTemplate\n(Search Service)"
+
+== Flight Cancellation Request ==
+Admin -> AdminController: PUT /v1/admin/flights/{flightId}/cancel
+activate AdminController
+
+AdminController -> FlightService: cancelFlight(flightId)
+activate FlightService
+
+== Flight Status Update ==
+FlightService -> FlightRepository: findByFlightId(flightId)
+activate FlightRepository
+FlightRepository --> FlightService: Flight entity
+deactivate FlightRepository
+
+FlightService -> FlightService: flight.setFlightStatus(CANCELLED)
+FlightService -> FlightRepository: save(flight)
+activate FlightRepository
+FlightRepository --> FlightService: Updated Flight
+deactivate FlightRepository
+
+== Event Publishing ==
+FlightService -> FlightService: publishFlightCancelledEvent(flight)
+activate FlightService
+note right: Format: "FLIGHT_CANCELLED:source:destination"
+
+FlightService -> RedisTemplate: convertAndSend("flight-events", eventMessage)
+activate RedisTemplate
+RedisTemplate -> RedisChannel: Publish event
+activate RedisChannel
+RedisTemplate --> FlightService: Event published
+deactivate RedisTemplate
+deactivate FlightService
+
+FlightService --> AdminController: Updated Flight
+deactivate FlightService
+AdminController --> Admin: Cancellation confirmation
+deactivate AdminController
+
+== Event Processing ==
+RedisChannel -> EventListener: handleFlightEvent(message)
+activate EventListener
+deactivate RedisChannel
+
+EventListener -> EventListener: Parse message\n(extract source, destination)
+
+== Cache Invalidation ==
+EventListener -> EventListener: flushCacheForRoute(source, destination)
+activate EventListener
+
+EventListener -> SearchRedis: keys(source:destination:*)
+activate SearchRedis
+SearchRedis --> EventListener: Cache keys to delete
+deactivate SearchRedis
+
+EventListener -> SearchRedis: delete(cacheKeys)
+activate SearchRedis
+SearchRedis --> EventListener: Cache cleared
+deactivate SearchRedis
+
+note right EventListener: Also clears reverse direction\ncache keys (destination:source:*)
+
+deactivate EventListener
+
+== Graph Reinitialization ==
+EventListener -> GraphService: initializeGraphs()
+activate GraphService
+note right: Rebuilds flight graphs\nwith current data excluding\ncancelled flights
+GraphService --> EventListener: Graphs updated
+deactivate GraphService
+
+EventListener --> RedisChannel: Event processing complete
+deactivate EventListener
+
+@enduml
