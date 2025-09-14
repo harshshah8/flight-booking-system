@@ -78,6 +78,21 @@ services:
     networks:
       - flight-network
 
+  # Payment Service
+  payment-service:
+    build: ../payment-service
+    container_name: flight-payment-service
+    ports:
+      - "8084:8084"
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/8084' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 volumes:
   postgres_data:
   redis_data:
