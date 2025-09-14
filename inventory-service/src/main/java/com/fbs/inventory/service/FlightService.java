@@ -4,6 +4,7 @@ import com.fbs.inventory.entity.Flight;
 import com.fbs.inventory.repository.FlightRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,5 +29,23 @@ public class FlightService {
 
     public List<Flight> getFlightsBySource(String source) {
         return flightRepository.findBySource(source);
+    }
+
+    /**
+     * Atomically reserve seats for a flight
+     * @return true if seats were reserved, false if insufficient seats
+     */
+    @Transactional
+    public boolean reserveSeats(UUID flightId, Integer numberOfSeats) {
+        int rowsUpdated = flightRepository.reserveSeats(flightId, numberOfSeats);
+        return rowsUpdated > 0;
+    }
+
+    /**
+     * Release seats for a flight (rollback operation)
+     */
+    @Transactional
+    public void releaseSeats(UUID flightId, Integer numberOfSeats) {
+        flightRepository.releaseSeats(flightId, numberOfSeats);
     }
 }

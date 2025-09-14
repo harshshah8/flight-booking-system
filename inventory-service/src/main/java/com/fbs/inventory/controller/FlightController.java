@@ -46,4 +46,16 @@ public class FlightController {
         List<Flight> flights = flightService.getFlightsBySource(source);
         return ResponseEntity.ok(flights);
     }
+
+    @PostMapping("/{flightId}/reserve-seats")
+    public ResponseEntity<Boolean> reserveSeats(@PathVariable UUID flightId, @RequestParam Integer numberOfSeats) {
+        boolean reserved = flightService.reserveSeats(flightId, numberOfSeats);
+        return ResponseEntity.ok(reserved);
+    }
+
+    @PostMapping("/{flightId}/release-seats")
+    public ResponseEntity<Void> releaseSeats(@PathVariable UUID flightId, @RequestParam Integer numberOfSeats) {
+        flightService.releaseSeats(flightId, numberOfSeats);
+        return ResponseEntity.ok().build();
+    }
 }
