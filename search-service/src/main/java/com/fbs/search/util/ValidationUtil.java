@@ -26,5 +26,7 @@ public class ValidationUtil {
         if (!criteria.equalsIgnoreCase("CHEAPEST") && !criteria.equalsIgnoreCase("FASTEST")) {
             throw new SearchServiceException(SearchServiceError.INVALID_SEARCH_CRITERIA);
         }
+
+        return criteria.toUpperCase();
     }
 }
