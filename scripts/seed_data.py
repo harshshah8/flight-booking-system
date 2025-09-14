@@ -97,7 +97,7 @@ def create_table(conn):
         cost DECIMAL(10,2) NOT NULL,
         duration INTEGER NOT NULL,
         available_seats INTEGER NOT NULL,
-        occupied_seats INTEGER NOT NULL,
+        booked_seats INTEGER NOT NULL,
         flight_status VARCHAR(20) NOT NULL,
         departure_time TIME NOT NULL,
         arrival_time TIME NOT NULL,
@@ -170,42 +170,252 @@ def should_connect(source, dest):
     
     return False
 
+def generate_guaranteed_demo_routes():
+    """Generate guaranteed routes for AMD->BLR demo with 0, 1, and 2 stops"""
+    demo_flights = []
+    flight_counter = 1000  # Start with higher counter to avoid conflicts
+
+    # Time slots for flights
+    time_slots = [
+        (6, 0), (7, 30), (8, 0), (9, 30), (10, 0), (11, 30),
+        (12, 0), (13, 30), (14, 0), (15, 30), (16, 0), (17, 30),
+        (18, 0), (19, 30), (20, 0), (21, 30)
+    ]
+
+    print("Generating guaranteed AMD->BLR demo routes...")
+
+    # DIRECT FLIGHTS (0 stops): AMD -> BLR
+    direct_routes = [
+        ('AMD', 'BLR', 'AI', 4500, 120),  # Air India - expensive, medium duration
+        ('AMD', 'BLR', '6E', 3200, 115),  # IndiGo - cheap, fast
+        ('AMD', 'BLR', 'UK', 5200, 125),  # Vistara - expensive, slow
+        ('AMD', 'BLR', 'SG', 2800, 110),  # SpiceJet - very cheap, very fast
+    ]
+
+    # ONE-STOP ROUTES (1 stop): AMD -> X -> BLR
+    one_stop_hubs = ['BOM', 'DEL', 'HYD', 'MAA']  # Major hub cities
+
+    # TWO-STOP ROUTES (2 stops): AMD -> X -> Y -> BLR
+    two_stop_combinations = [
+        ('BOM', 'DEL'),  # AMD->BOM->DEL->BLR
+        ('DEL', 'MAA'),  # AMD->DEL->MAA->BLR
+        ('HYD', 'BOM'),  # AMD->HYD->BOM->BLR
+        ('MAA', 'CCU'),  # AMD->MAA->CCU->BLR
+    ]
+
+    # Generate direct flights
+    for source, dest, airline, base_cost, base_duration in direct_routes:
+        for i in range(2):  # 2 flights per airline for variety
+            dep_hour, dep_min = random.choice(time_slots)
+            dep_time = time(dep_hour, dep_min)
+
+            # Add variation to cost and duration
+            cost_variation = random.randint(-300, 500)
+            duration_variation = random.randint(-10, 20)
+
+            final_cost = base_cost + cost_variation
+            final_duration = base_duration + duration_variation
+
+            # Calculate arrival time
+            arr_hour = (dep_hour + final_duration // 60) % 24
+            arr_min = (dep_min + final_duration % 60) % 60
+            if arr_min >= 60:
+                arr_hour = (arr_hour + 1) % 24
+                arr_min = arr_min - 60
+            arr_time = time(arr_hour, arr_min)
+
+            flight_number = f"{airline}{flight_counter:03d}"
+            flight_counter += 1
+
+            total_seats = random.choice([120, 150, 180])
+            booked = random.radiant(20, total_seats - 10)
+            available = total_seats - booked
+
+            flight = (
+                flight_number, source, dest, final_cost, final_duration,
+                available, booked, "SCHEDULED",
+                dep_time.strftime("%H:%M:%S"),
+                arr_time.strftime("%H:%M:%S")
+            )
+            demo_flights.append(flight)
+
+    # Generate one-stop connecting flights
+    for hub in one_stop_hubs:
+        # AMD -> HUB flights
+        for airline in ['6E', 'AI', 'SG']:
+            dep_hour, dep_min = random.choice(time_slots)
+            dep_time = time(dep_hour, dep_min)
+            duration = random.randint(90, 120)
+            cost = random.randint(2000, 3500)
+
+            arr_hour = (dep_hour + duration // 60) % 24
+            arr_min = (dep_min + duration % 60) % 60
+            arr_time = time(arr_hour, arr_min)
+
+            flight_number = f"{airline}{flight_counter:03d}"
+            flight_counter += 1
+
+            total_seats = random.choice([120, 150, 180])
+            booked = random.randint(20, total_seats - 10)
+            available = total_seats - booked
+
+            flight = (
+                flight_number, 'AMD', hub, cost, duration,
+                available, booked, "SCHEDULED",
+                dep_time.strftime("%H:%M:%S"),
+                arr_time.strftime("%H:%M:%S")
+            )
+            demo_flights.append(flight)
+
+        # HUB -> BLR flights (with connecting times)
+        for airline in ['6E', 'AI', 'UK', 'SG']:
+            # Schedule 2-3 hours after AMD->HUB flights for connections
+            dep_hour = random.randint(10, 20)
+            dep_min = random.choice([0, 30])
+            dep_time = time(dep_hour, dep_min)
+            duration = random.randint(80, 140)
+            cost = random.randint(2200, 4000)
+
+            arr_hour = (dep_hour + duration // 60) % 24
+            arr_min = (dep_min + duration % 60) % 60
+            arr_time = time(arr_hour, arr_min)
+
+            flight_number = f"{airline}{flight_counter:03d}"
+            flight_counter += 1
+
+            total_seats = random.choice([120, 150, 180])
+            booked = random.randint(20, total_seats - 10)
+            available = total_seats - booked
+
+            flight = (
+                flight_number, hub, 'BLR', cost, duration,
+                available, booked, "SCHEDULED",
+                dep_time.strftime("%H:%M:%S"),
+                arr_time.strftime("%H:%M:%S")
+            )
+            demo_flights.append(flight)
+
+    # Generate two-stop connecting flights
+    for stop1, stop2 in two_stop_combinations:
+        # AMD -> STOP1
+        for airline in ['6E', 'SG']:
+            dep_time = time(6, 0)  # Early morning
+            duration = random.randint(90, 120)
+            cost = random.randint(1800, 2800)
+
+            arr_hour = (6 + duration // 60) % 24
+            arr_min = duration % 60
+            arr_time = time(arr_hour, arr_min)
+
+            flight_number = f"{airline}{flight_counter:03d}"
+            flight_counter += 1
+
+            total_seats = random.choice([120, 150, 180])
+            booked = random.randint(20, total_seats - 10)
+            available = total_seats - booked
+
+            flight = (
+                flight_number, 'AMD', stop1, cost, duration,
+                available, booked, "SCHEDULED",
+                dep_time.strftime("%H:%M:%S"),
+                arr_time.strftime("%H:%M:%S")
+            )
+            demo_flights.append(flight)
+
+        # STOP1 -> STOP2
+        dep_time = time(10, 0)  # Mid morning
+        duration = random.randint(100, 150)
+        cost = random.randint(2500, 3500)
+
+        arr_hour = (10 + duration // 60) % 24
+        arr_min = duration % 60
+        arr_time = time(arr_hour, arr_min)
+
+        airline = random.choice(['6E', 'AI', 'UK'])
+        flight_number = f"{airline}{flight_counter:03d}"
+        flight_counter += 1
+
+        total_seats = random.choice([120, 150, 180])
+        booked = random.randint(20, total_seats - 10)
+        available = total_seats - booked
+
+        flight = (
+            flight_number, stop1, stop2, cost, duration,
+            available, booked, "SCHEDULED",
+            dep_time.strftime("%H:%M:%S"),
+            arr_time.strftime("%H:%M:%S")
+        )
+        demo_flights.append(flight)
+
+        # STOP2 -> BLR
+        dep_time = time(14, 0)  # Afternoon
+        duration = random.randint(80, 130)
+        cost = random.randint(2200, 3200)
+
+        arr_hour = (14 + duration // 60) % 24
+        arr_min = duration % 60
+        arr_time = time(arr_hour, arr_min)
+
+        airline = random.choice(['6E', 'AI', 'SG'])
+        flight_number = f"{airline}{flight_counter:03d}"
+        flight_counter += 1
+
+        total_seats = random.choice([120, 150, 180])
+        booked = random.randint(20, total_seats - 10)
+        available = total_seats - booked
+
+        flight = (
+            flight_number, stop2, 'BLR', cost, duration,
+            available, booked, "SCHEDULED",
+            dep_time.strftime("%H:%M:%S"),
+            arr_time.strftime("%H:%M:%S")
+        )
+        demo_flights.append(flight)
+
+    print(f"✅ Generated {len(demo_flights)} guaranteed demo flights")
+    return demo_flights
+
 def generate_flight_data():
-    """Generate comprehensive flight dataset"""
+    """Generate comprehensive flight dataset with guaranteed demo routes"""
     flights = []
     flight_counter = 1
     airport_codes = list(AIRPORTS.keys())
-    
+
+    # First, generate guaranteed demo routes
+    demo_flights = generate_guaranteed_demo_routes()
+    flights.extend(demo_flights)
+    flight_counter = 2000  # Continue counter after demo flights
+
     # Time slots for flights
     time_slots = [
         (6, 0), (7, 0), (8, 0), (9, 0), (10, 0), (11, 0),
         (12, 0), (13, 0), (14, 0), (15, 0), (16, 0), (17, 0),
         (18, 0), (19, 0), (20, 0), (21, 0), (22, 0)
     ]
-    
-    print(f"🔄 Generating flights for {len(airport_codes)} airports...")
-    
+
+    print(f"🔄 Generating additional flights for {len(airport_codes)} airports...")
+
     for source in airport_codes:
         for dest in airport_codes:
             if should_connect(source, dest):
                 # Number of flights for this route
                 src_tier = AIRPORTS[source]['tier']
                 dest_tier = AIRPORTS[dest]['tier']
-                
+
                 if src_tier == 1 and dest_tier == 1:
                     num_flights = random.randint(2, 4)
                 elif src_tier <= 2 and dest_tier <= 2:
                     num_flights = random.randint(1, 3)
                 else:
                     num_flights = random.randint(1, 2)
-                
+
                 for _ in range(num_flights):
                     airline_code = random.choice(list(AIRLINES.keys()))
-                    
+
                     # Generate departure time
                     dep_hour, dep_min = random.choice(time_slots)
                     dep_time = time(dep_hour, dep_min)
-                    
+
                     # Calculate duration and arrival time
                     duration_minutes = calculate_duration(source, dest)
                     arr_hour = (dep_hour + duration_minutes // 60) % 24
@@ -214,28 +424,28 @@ def generate_flight_data():
                         arr_hour = (arr_hour + 1) % 24
                         arr_min = arr_min - 60
                     arr_time = time(arr_hour, arr_min)
-                    
+
                     # Calculate cost
                     cost = calculate_cost(source, dest, airline_code)
-                    
+
                     # Flight number
                     flight_number = f"{airline_code}{flight_counter:03d}"
                     flight_counter += 1
-                    
+
                     # Seat availability
                     total_seats = random.choice([120, 150, 180])
-                    occupied = random.randint(20, total_seats - 10)
-                    available = total_seats - occupied
-                    
+                    booked = random.randint(20, total_seats - 10)
+                    available = total_seats - booked
+
                     flight = (
                         flight_number, source, dest, cost, duration_minutes,
-                        available, occupied, "SCHEDULED",
+                        available, booked, "SCHEDULED",
                         dep_time.strftime("%H:%M:%S"),
                         arr_time.strftime("%H:%M:%S")
                     )
                     flights.append(flight)
-    
-    print(f"✅ Generated {len(flights)} flights")
+
+    print(f"✅ Generated {len(flights)} total flights (including {len(demo_flights)} demo flights)")
     return flights
 
 def seed_flight_data(conn):
@@ -244,7 +454,7 @@ def seed_flight_data(conn):
     
     insert_sql = """
     INSERT INTO flights (flight_number, source, destination, cost, duration, 
-                        available_seats, occupied_seats, flight_status, 
+                        available_seats, booked_seats, flight_status,
                         departure_time, arrival_time)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """

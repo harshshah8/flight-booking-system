@@ -1,7 +1,6 @@
 package com.fbs.inventory.repository;
 
 import com.fbs.inventory.entity.Flight;
-import com.fbs.inventory.entity.FlightStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

@@ -31,12 +31,9 @@ public class Flight {
     
     @Column(name = "available_seats", nullable = false)
     private Integer availableSeats;
-    
-    @Column(name = "occupied_seats", nullable = false)
-    private Integer occupiedSeats;
 
     @Column(name = "booked_seats", nullable = false)
-    private Integer bookedSeats = 0;
+    private Integer bookedSeats;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "flight_status", nullable = false)
@@ -59,7 +56,7 @@ public class Flight {
     // Constructor
     public Flight(String flightNumber, String source, String destination, 
                   Double cost, Integer duration, Integer availableSeats, 
-                  Integer occupiedSeats, FlightStatus flightStatus, 
+                  Integer bookedSeats, FlightStatus flightStatus,
                   LocalTime departureTime, LocalTime arrivalTime) {
         this.flightNumber = flightNumber;
         this.source = source;
@@ -67,7 +64,7 @@ public class Flight {
         this.cost = cost;
         this.duration = duration;
         this.availableSeats = availableSeats;
-        this.occupiedSeats = occupiedSeats;
+        this.bookedSeats = bookedSeats;
         this.flightStatus = flightStatus;
         this.departureTime = departureTime;
         this.arrivalTime = arrivalTime;
@@ -96,9 +93,6 @@ public class Flight {
     
     public Integer getAvailableSeats() { return availableSeats; }
     public void setAvailableSeats(Integer availableSeats) { this.availableSeats = availableSeats; }
-    
-    public Integer getOccupiedSeats() { return occupiedSeats; }
-    public void setOccupiedSeats(Integer occupiedSeats) { this.occupiedSeats = occupiedSeats; }
 
     public Integer getBookedSeats() { return bookedSeats; }
     public void setBookedSeats(Integer bookedSeats) { this.bookedSeats = bookedSeats; }
