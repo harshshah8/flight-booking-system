@@ -1,0 +1,153 @@
+@startuml Booking Flow Sequence Diagram
+
+title Flight Booking System - Complete Sequence Diagram
+
+actor User
+participant "Booking Service" as BookingService
+database "Booking DB" as BookingDB
+participant "Inventory Service" as InventoryService
+database "Inventory DB" as InventoryDB
+participant "Payment Service" as PaymentService
+participant "Background Job" as TimeoutJob
+
+== Main Booking Flow ==
+
+User -> BookingService: 1. POST /v1/bookings\n{flightId: "ABC123", numberOfSeats: 2, customerEmail: "user@test.com"}
+activate BookingService
+
+BookingService -> BookingDB: 2. INSERT booking\n(id=UUID, status=INITIATED, created_at=NOW())
+activate BookingDB
+BookingDB --> BookingService: 3. Booking created
+deactivate BookingDB
+
+note over BookingService: Status: INITIATED → SEATS_RESERVED or FAILED
+
+BookingService -> InventoryService: 4. POST /v1/flights/ABC123/reserve-seats\n{numberOfSeats: 2}
+activate InventoryService
+
+InventoryService -> InventoryDB: 5. UPDATE flights SET booked_seats = booked_seats + 2\nWHERE flight_id = 'ABC123' AND (available_seats - booked_seats) >= 2
+activate InventoryDB
+
+alt Seats Available (rows updated > 0)
+    InventoryDB --> InventoryService: 6. 1 row updated
+    InventoryService --> BookingService: 7. true (seats reserved)
+
+    BookingService -> BookingDB: 8. UPDATE booking\n(status=SEATS_RESERVED, updated_at=NOW())
+    activate BookingDB
+    BookingDB --> BookingService: 9. Updated
+    deactivate BookingDB
+
+    note over BookingService: Status: SEATS_RESERVED → CONFIRMED or FAILED
+
+    BookingService -> PaymentService: 10. POST /v1/payments/process\n{bookingId, amount=15000, customerEmail}
+    activate PaymentService
+
+    note right of PaymentService
+    Payment processing: 1-3 seconds
+    Success rate: 70%
+    Demo mode available
+    end note
+
+    alt Payment Success
+        PaymentService --> BookingService: 11. PaymentResponse\n{status=SUCCESS, paymentId="TXN_123"}
+
+        note over BookingService: Status: SEATS_RESERVED → CONFIRMED
+
+        BookingService -> BookingDB: 12. UPDATE booking\n(status=CONFIRMED, paymentId="TXN_123", updated_at=NOW())
+        activate BookingDB
+        BookingDB --> BookingService: 13. Updated
+        deactivate BookingDB
+
+        BookingService --> User: 14. BookingResponse\n{status=CONFIRMED, bookingId="uuid", paymentId="TXN_123"}
+
+    else Payment Failed
+        PaymentService --> BookingService: 15. PaymentResponse\n{status=FAILED, failureReason="Card declined"}
+
+        note over BookingService: Status: SEATS_RESERVED → FAILED (rollback seats)
+
+        BookingService -> InventoryService: 16. POST /v1/flights/ABC123/release-seats\n{numberOfSeats: 2}
+        InventoryService -> InventoryDB: 17. UPDATE flights SET booked_seats = booked_seats - 2
+        InventoryDB --> InventoryService: 18. Released
+        InventoryService --> BookingService: 19. Seats released
+
+        BookingService -> BookingDB: 20. UPDATE booking\n(status=FAILED, updated_at=NOW())
+        activate BookingDB
+        BookingDB --> BookingService: 21. Updated
+        deactivate BookingDB
+
+        BookingService --> User: 22. BookingResponse\n{status=FAILED, reason="Payment failed"}
+    end
+
+    deactivate PaymentService
+
+else Insufficient Seats (0 rows updated)
+    InventoryDB --> InventoryService: 6. 0 rows updated
+    InventoryService --> BookingService: 7. false (insufficient seats)
+
+    note over BookingService: Status: INITIATED → FAILED
+
+    BookingService -> BookingDB: 8. UPDATE booking\n(status=FAILED, updated_at=NOW())
+    activate BookingDB
+    BookingDB --> BookingService: 9. Updated
+    deactivate BookingDB
+
+    BookingService --> User: 10. BookingResponse\n{status=FAILED, reason="Insufficient seats"}
+end
+
+deactivate InventoryDB
+deactivate InventoryService
+deactivate BookingService
+
+== Timeout Handling (Eager Cleanup) ==
+
+note over User, BookingService
+Next booking request triggers cleanup of expired reservations
+end note
+
+User -> BookingService: POST /v1/bookings (new request)
+activate BookingService
+
+BookingService -> BookingDB: 1. cleanupExpiredBookings():\nSELECT * FROM bookings WHERE status='SEATS_RESERVED'\nAND created_at < NOW() - INTERVAL '5 minutes'
+activate BookingDB
+
+BookingDB --> BookingService: List of expired bookings (if any)
+deactivate BookingDB
+
+alt Expired bookings found
+    loop For each expired booking
+        note over BookingService: Status: SEATS_RESERVED → EXPIRED (release seats)
+
+        BookingService -> InventoryService: POST /v1/flights/{flightId}/release-seats
+        activate InventoryService
+        InventoryService -> InventoryDB: UPDATE flights SET booked_seats = booked_seats - ?
+        activate InventoryDB
+        InventoryDB --> InventoryService: Seats released
+        deactivate InventoryDB
+        InventoryService --> BookingService: Success
+        deactivate InventoryService
+
+        BookingService -> BookingDB: UPDATE booking\n(status=EXPIRED, updated_at=NOW())
+        activate BookingDB
+        BookingDB --> BookingService: Updated
+        deactivate BookingDB
+    end
+
+    note over BookingService: Cleanup complete, now process new booking request
+else No expired bookings
+    note over BookingService: Skip cleanup, proceed with new booking
+end
+
+note over BookingService: Continue with normal booking flow...
+deactivate BookingService
+
+== Booking Status State Machine ==
+
+note over BookingService
+Booking Status Flow:
+INITIATED → SEATS_RESERVED → CONFIRMED
+INITIATED → FAILED (insufficient seats)
+SEATS_RESERVED → FAILED (payment failed)
+SEATS_RESERVED → EXPIRED (timeout after 5 minutes)
+end note
+
+@enduml

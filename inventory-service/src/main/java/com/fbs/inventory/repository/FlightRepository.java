@@ -3,6 +3,7 @@ package com.fbs.inventory.repository;
 import com.fbs.inventory.entity.Flight;
 import com.fbs.inventory.entity.FlightStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,4 +47,16 @@ public interface FlightRepository extends JpaRepository<Flight, UUID> {
     @Query("SELECT f FROM Flight f WHERE f.source = :source AND f.destination = :destination " +
            "AND f.availableSeats > 0 ORDER BY f.duration ASC")
     List<Flight> findFastestFlights(@Param("source") String source, @Param("destination") String destination);
+
+    // Atomic seat reservation - returns number of rows updated
+    @Query("UPDATE Flight f SET f.bookedSeats = f.bookedSeats + :numberOfSeats " +
+           "WHERE f.flightId = :flightId AND (f.availableSeats - f.bookedSeats) >= :numberOfSeats")
+    @Modifying
+    int reserveSeats(@Param("flightId") UUID flightId, @Param("numberOfSeats") Integer numberOfSeats);
+
+    // Release seats (for rollback operations)
+    @Query("UPDATE Flight f SET f.bookedSeats = f.bookedSeats - :numberOfSeats " +
+           "WHERE f.flightId = :flightId")
+    @Modifying
+    int releaseSeats(@Param("flightId") UUID flightId, @Param("numberOfSeats") Integer numberOfSeats);
 }

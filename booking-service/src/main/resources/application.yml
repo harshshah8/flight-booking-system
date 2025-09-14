@@ -1,0 +1,46 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/flight_inventory_db
+    username: flight_user
+    password: flight_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  sql:
+    init:
+      mode: always
+
+# External Services Configuration
+external:
+  services:
+    inventory-service:
+      url: http://inventory-service:8082
+      timeout: 30s
+    payment-service:
+      url: http://payment-service:8084
+      timeout: 30s
+
+# Booking Configuration
+booking:
+  timeout:
+    seat-reservation-minutes: 5
+
+logging:
+  level:
+    com.fbs.booking: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG

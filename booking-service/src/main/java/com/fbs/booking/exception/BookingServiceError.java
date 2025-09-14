@@ -21,6 +21,7 @@ public enum BookingServiceError {
     BOOKING_ALREADY_EXISTS(14014, "Booking already exists", HttpStatus.CONFLICT),
     BOOKING_ALREADY_CANCELLED(14015, "Booking already cancelled", HttpStatus.BAD_REQUEST),
     CANNOT_CANCEL_BOOKING(14016, "Cannot cancel booking", HttpStatus.BAD_REQUEST),
+    FLIGHT_NOT_FOUND(14017, "Flight not found", HttpStatus.NOT_FOUND),
 
     // External Service Errors
     INVENTORY_SERVICE_ERROR(14021, "Inventory service unavailable", HttpStatus.BAD_GATEWAY),
