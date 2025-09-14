@@ -34,6 +34,9 @@ public class Flight {
     
     @Column(name = "occupied_seats", nullable = false)
     private Integer occupiedSeats;
+
+    @Column(name = "booked_seats", nullable = false)
+    private Integer bookedSeats = 0;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "flight_status", nullable = false)
@@ -96,6 +99,9 @@ public class Flight {
     
     public Integer getOccupiedSeats() { return occupiedSeats; }
     public void setOccupiedSeats(Integer occupiedSeats) { this.occupiedSeats = occupiedSeats; }
+
+    public Integer getBookedSeats() { return bookedSeats; }
+    public void setBookedSeats(Integer bookedSeats) { this.bookedSeats = bookedSeats; }
     
     public FlightStatus getFlightStatus() { return flightStatus; }
     public void setFlightStatus(FlightStatus flightStatus) { this.flightStatus = flightStatus; }

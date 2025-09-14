@@ -1,0 +1,106 @@
+@startuml Concurrent Booking Scenario
+
+title Concurrent Users Booking Same Flight - Race Condition Handling
+
+actor "User 1" as User1
+actor "User 2" as User2
+participant "Booking Service 1" as BS1
+participant "Booking Service 2" as BS2
+participant "Inventory Service" as InventoryService
+database "Inventory DB\n(Flight ABC: 2 seats available)" as InventoryDB
+
+== Timeline: Two Users Book Simultaneously ==
+
+note over User1, User2
+Initial State: Flight ABC123 has 2 available seats, 0 booked seats
+end note
+
+User1 -> BS1: T1: POST /bookings\n{flightId: "ABC123", seats: 2}
+User2 -> BS2: T2: POST /bookings\n{flightId: "ABC123", seats: 1}
+
+activate BS1
+activate BS2
+
+BS1 -> BS1: T3: Create booking1 (INITIATED)
+BS2 -> BS2: T4: Create booking2 (INITIATED)
+
+BS1 -> InventoryService: T5: POST /reserve-seats\n{flightId: "ABC123", seats: 2}
+BS2 -> InventoryService: T6: POST /reserve-seats\n{flightId: "ABC123", seats: 1}
+
+activate InventoryService
+
+== Atomic Database Operations (Key Point!) ==
+
+InventoryService -> InventoryDB: T7: UPDATE flights SET booked_seats = 0 + 2\nWHERE flight_id = 'ABC123' AND (2 - 0) >= 2
+activate InventoryDB
+
+note right of InventoryDB
+User1's transaction executes first
+Atomic operation: Check availability + Reserve
+end note
+
+InventoryDB --> InventoryService: T8: 1 row updated ✅
+deactivate InventoryDB
+
+InventoryService -> InventoryDB: T9: UPDATE flights SET booked_seats = 2 + 1\nWHERE flight_id = 'ABC123' AND (2 - 2) >= 1
+activate InventoryDB
+
+note right of InventoryDB
+User2's transaction sees updated state
+(2 - 2) >= 1 evaluates to FALSE
+end note
+
+InventoryDB --> InventoryService: T10: 0 rows updated ❌
+deactivate InventoryDB
+
+InventoryService --> BS1: T11: true (seats reserved)
+InventoryService --> BS2: T12: false (insufficient seats)
+
+deactivate InventoryService
+
+== User 1: Success Path ==
+
+BS1 -> BS1: T13: Update booking1 (SEATS_RESERVED)
+BS1 -> BS1: T14: Process payment → SUCCESS
+BS1 -> BS1: T15: Update booking1 (CONFIRMED)
+BS1 --> User1: T16: Booking SUCCESS ✅
+
+== User 2: Failure Path ==
+
+BS2 -> BS2: T13: Update booking2 (FAILED)
+BS2 --> User2: T14: Booking FAILED\n"Insufficient seats available" ❌
+
+deactivate BS1
+deactivate BS2
+
+== Final State ==
+
+note over InventoryDB
+Flight ABC123:
+- available_seats: 2
+- booked_seats: 2
+- remaining_seats: 0
+end note
+
+note over User1
+Booking Status: CONFIRMED
+Seats Booked: 2
+end note
+
+note over User2
+Booking Status: FAILED
+Reason: Insufficient seats
+end note
+
+== Key Concurrency Protection ==
+
+note over InventoryService, InventoryDB
+🔒 ATOMIC OPERATION GUARANTEES:
+1. Single SQL UPDATE with WHERE condition
+2. Check availability + Reserve in one transaction
+3. Database-level concurrency control
+4. No race conditions possible
+5. ACID compliance ensures consistency
+end note
+
+@enduml
