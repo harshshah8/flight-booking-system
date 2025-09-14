@@ -2,6 +2,7 @@ package com.fbs.booking.service;
 
 import com.fbs.booking.accessor.InventoryServiceAccessor;
 import com.fbs.booking.accessor.PaymentServiceAccessor;
+import com.fbs.booking.config.BookingConfig;
 import com.fbs.booking.dto.*;
 import com.fbs.booking.entity.Booking;
 import com.fbs.booking.entity.BookingStatus;
@@ -32,6 +33,9 @@ public class BookingService {
 
     @Autowired
     private PaymentServiceAccessor paymentServiceAccessor;
+
+    @Autowired
+    private BookingConfig bookingConfig;
 
     /**
      * Create booking with atomic seat blocking mechanism
@@ -173,7 +177,7 @@ public class BookingService {
      * Eager cleanup of expired bookings (timeout handling)
      */
     public void cleanupExpiredBookings() {
-        LocalDateTime expiredBefore = LocalDateTime.now().minusMinutes(5); // 5-minute timeout
+        LocalDateTime expiredBefore = LocalDateTime.now().minusMinutes(bookingConfig.getTimeout().getSeatReservationMinutes());
         List<Booking> expiredBookings = bookingRepository.findExpiredReservations(BookingStatus.SEATS_RESERVED, expiredBefore);
 
         for (Booking expiredBooking : expiredBookings) {

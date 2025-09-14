@@ -39,7 +39,7 @@ User1's transaction executes first
 Atomic operation: Check availability + Reserve
 end note
 
-InventoryDB --> InventoryService: T8: 1 row updated ✅
+InventoryDB --> InventoryService: T8: 1 row updated
 deactivate InventoryDB
 
 InventoryService -> InventoryDB: T9: UPDATE flights SET booked_seats = 2 + 1\nWHERE flight_id = 'ABC123' AND (2 - 2) >= 1
@@ -50,7 +50,7 @@ User2's transaction sees updated state
 (2 - 2) >= 1 evaluates to FALSE
 end note
 
-InventoryDB --> InventoryService: T10: 0 rows updated ❌
+InventoryDB --> InventoryService: T10: 0 rows updated
 deactivate InventoryDB
 
 InventoryService --> BS1: T11: true (seats reserved)
@@ -63,12 +63,12 @@ deactivate InventoryService
 BS1 -> BS1: T13: Update booking1 (SEATS_RESERVED)
 BS1 -> BS1: T14: Process payment → SUCCESS
 BS1 -> BS1: T15: Update booking1 (CONFIRMED)
-BS1 --> User1: T16: Booking SUCCESS ✅
+BS1 --> User1: T16: Booking SUCCESS
 
 == User 2: Failure Path ==
 
 BS2 -> BS2: T13: Update booking2 (FAILED)
-BS2 --> User2: T14: Booking FAILED\n"Insufficient seats available" ❌
+BS2 --> User2: T14: Booking FAILED\n"Insufficient seats available"
 
 deactivate BS1
 deactivate BS2
@@ -90,7 +90,7 @@ end note
 note over User2
 Booking Status: FAILED
 Reason: Insufficient seats
-end note
+end notehe
 
 == Key Concurrency Protection ==
 

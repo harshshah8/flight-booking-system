@@ -93,6 +93,32 @@ services:
       retries: 3
       start_period: 30s
 
+  # Booking Service
+  booking-service:
+    build: ../booking-service
+    container_name: flight-booking-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/flight_inventory_db
+      SPRING_DATASOURCE_USERNAME: flight_user
+      SPRING_DATASOURCE_PASSWORD: flight_password
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/8083' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
 volumes:
   postgres_data:
   redis_data:
