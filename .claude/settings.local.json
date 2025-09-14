@@ -4,7 +4,8 @@
       "Bash(tree:*)",
       "Bash(git init:*)",
       "Bash(mv:*)",
-      "Bash(../mvnw test -Dtest=BookingServiceTest -q)"
+      "Bash(../mvnw test -Dtest=BookingServiceTest -q)",
+      "Bash(../mvnw clean compile -q)"
     ],
     "deny": [],
     "ask": []

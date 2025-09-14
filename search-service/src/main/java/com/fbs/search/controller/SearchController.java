@@ -27,19 +27,19 @@ public class SearchController {
 
         // Validate criteria using utility
         criteria = ValidationUtil.validateSearchCriteria(criteria);
-        
+
         try {
             LocalDate searchDate = LocalDate.parse(date);
-            
+
             Optional<CachedSearchResult> result = cacheService.getCachedResults(
-                source.toUpperCase(), 
-                destination.toUpperCase(), 
-                searchDate, 
-                criteria.toUpperCase()
+                    source.toUpperCase(),
+                    destination.toUpperCase(),
+                    searchDate,
+                    criteria.toUpperCase()
             );
 
             return result.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
-            
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

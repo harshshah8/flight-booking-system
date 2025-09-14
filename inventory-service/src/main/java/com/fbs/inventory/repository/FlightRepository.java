@@ -66,4 +66,8 @@ public interface FlightRepository extends JpaRepository<Flight, UUID> {
     @Modifying
     int releaseSeats(@Param("flightId") UUID flightId,
                      @Param("numberOfSeats") Integer numberOfSeats);
+
+    // Find all flights excluding CANCELLED and SOLD_OUT
+    @Query("SELECT f FROM Flight f WHERE f.flightStatus NOT IN ('CANCELLED', 'SOLD_OUT')")
+    List<Flight> findAllActiveFlights();
 }

@@ -25,6 +25,11 @@ spring:
     init:
       mode: always
 
+  data:
+    redis:
+      host: redis-cache
+      port: 6379
+
 logging:
   level:
     com.fbs.inventory: DEBUG

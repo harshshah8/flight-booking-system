@@ -196,6 +196,8 @@ ports:
 - `GET /v1/flights/source/{source}` - Get flights by source
 - `POST /v1/flights/{flightId}/reserve-seats` - Reserve seats (param: numberOfSeats)
 - `POST /v1/flights/{flightId}/release-seats` - Release seats (param: numberOfSeats)
+- `POST /admin/flights` - Add new flight (Admin API)
+- `PUT /admin/flights/{flightId}/cancel` - Cancel flight (Admin API, publishes event)
 
 ### Booking Service (Port 8083)
 - `GET /health` - Health check
