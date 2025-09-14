@@ -95,15 +95,7 @@ curl -X POST "http://localhost:8083/v1/bookings" \
 -d '{
   "flightId": "flight-uuid-here",
   "customerEmail": "test@example.com",
-  "numberOfSeats": 2,
-  "passengerDetails": [
-    {
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "john@example.com",
-      "phoneNumber": "+1234567890"
-    }
-  ]
+  "numberOfSeats": 2
 }'
 ```
 

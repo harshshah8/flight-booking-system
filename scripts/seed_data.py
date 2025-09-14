@@ -228,7 +228,7 @@ def generate_guaranteed_demo_routes():
             flight_counter += 1
 
             total_seats = random.choice([120, 150, 180])
-            booked = random.radiant(20, total_seats - 10)
+            booked = random.randint(20, total_seats - 10)
             available = total_seats - booked
 
             flight = (
@@ -265,6 +265,7 @@ def generate_guaranteed_demo_routes():
                 dep_time.strftime("%H:%M:%S"),
                 arr_time.strftime("%H:%M:%S")
             )
+            demo_flights.append(flight)
             demo_flights.append(flight)
 
         # HUB -> BLR flights (with connecting times)

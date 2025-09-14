@@ -12,7 +12,7 @@ public class Flight {
     private BigDecimal cost;
     private Integer duration;
     private Integer availableSeats;
-    private Integer occupiedSeats;
+    private Integer bookedSeats;
     private String flightStatus;
     private LocalTime departureTime;
     private LocalTime arrivalTime;
@@ -75,13 +75,9 @@ public class Flight {
         this.availableSeats = availableSeats;
     }
 
-    public Integer getOccupiedSeats() {
-        return occupiedSeats;
-    }
+    public Integer getBookedSeats() {return  bookedSeats;}
 
-    public void setOccupiedSeats(Integer occupiedSeats) {
-        this.occupiedSeats = occupiedSeats;
-    }
+    public void setBookedSeats(Integer bookedSeats) {this.bookedSeats = bookedSeats;}
 
     public String getFlightStatus() {
         return flightStatus;

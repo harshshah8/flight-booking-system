@@ -48,14 +48,22 @@ public interface FlightRepository extends JpaRepository<Flight, UUID> {
     List<Flight> findFastestFlights(@Param("source") String source, @Param("destination") String destination);
 
     // Atomic seat reservation - returns number of rows updated
-    @Query("UPDATE Flight f SET f.bookedSeats = f.bookedSeats + :numberOfSeats " +
-           "WHERE f.flightId = :flightId AND (f.availableSeats - f.bookedSeats) >= :numberOfSeats")
+    @Query("UPDATE Flight f " +
+            "SET f.bookedSeats = f.bookedSeats + :numberOfSeats, " +
+            "    f.availableSeats = f.availableSeats - :numberOfSeats " +
+            "WHERE f.flightId = :flightId " +
+            "  AND f.availableSeats >= :numberOfSeats")
     @Modifying
-    int reserveSeats(@Param("flightId") UUID flightId, @Param("numberOfSeats") Integer numberOfSeats);
+    int reserveSeats(@Param("flightId") UUID flightId,
+                     @Param("numberOfSeats") Integer numberOfSeats);
 
     // Release seats (for rollback operations)
-    @Query("UPDATE Flight f SET f.bookedSeats = f.bookedSeats - :numberOfSeats " +
-           "WHERE f.flightId = :flightId")
+    @Query("UPDATE Flight f " +
+            "SET f.bookedSeats = f.bookedSeats - :numberOfSeats, " +
+            "    f.availableSeats = f.availableSeats + :numberOfSeats " +
+            "WHERE f.flightId = :flightId " +
+            "  AND f.bookedSeats >= :numberOfSeats")
     @Modifying
-    int releaseSeats(@Param("flightId") UUID flightId, @Param("numberOfSeats") Integer numberOfSeats);
+    int releaseSeats(@Param("flightId") UUID flightId,
+                     @Param("numberOfSeats") Integer numberOfSeats);
 }

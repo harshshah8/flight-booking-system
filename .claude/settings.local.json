@@ -3,7 +3,8 @@
     "allow": [
       "Bash(tree:*)",
       "Bash(git init:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(../mvnw test -Dtest=BookingServiceTest -q)"
     ],
     "deny": [],
     "ask": []

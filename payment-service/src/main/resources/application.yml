@@ -26,7 +26,7 @@ payment:
     enable-random-failures: true
 
     # Demo mode - always succeed for specific test cases
-    demo-mode: false
+    demo-mode: true
     demo-success-emails:
       - "demo@test.com"
       - "success@test.com"
