@@ -18,13 +18,37 @@
 
 ## Quick Start
 
-### 1. Start All Services
+### 1. Start Database Services First
 ```bash
 cd infra
+docker-compose up postgres-db redis-cache -d
+```
+
+### 2. Wait for PostgreSQL to be Ready
+```bash
+# Wait for both databases to be healthy
+docker exec flight-postgres-db pg_isready -U flight_user -d flight_inventory_db
+docker exec flight-postgres-db pg_isready -U flight_user -d flight_booking_db
+```
+
+### 3. Seed Initial Data
+```bash
+cd ../data-seeding
+python seed_flights.py
+```
+
+### 4. Verify Data was Seeded
+```bash
+docker exec flight-postgres-db psql -U flight_user -d flight_inventory_db -c "SELECT COUNT(*) FROM flights;"
+```
+
+### 5. Start All Services
+```bash
+cd ../infra
 docker-compose up --build -d
 ```
 
-### 2. Verify Services Health
+### 6. Verify All Services Health
 ```bash
 # Search Service
 curl http://localhost:8081/health
@@ -40,18 +64,6 @@ curl http://localhost:8084/health
 
 # Redis
 docker exec flight-redis-cache redis-cli ping
-
-# PostgreSQL - Inventory Database
-docker exec flight-postgres-db pg_isready -U flight_user -d flight_inventory_db
-
-# PostgreSQL - Booking Database
-docker exec flight-postgres-db pg_isready -U flight_user -d flight_booking_db
-```
-
-### 3. Seed Initial Data
-```bash
-cd ../data-seeding
-python seed_flights.py
 ```
 
 ## API Examples
@@ -130,26 +142,8 @@ docker-compose down -v
 docker volume rm infra_postgres_data infra_redis_data
 ```
 
-### Fresh Start
-```bash
-# 1. Start database services first
-docker-compose up postgres-db redis-cache -d
-
-# 2. Wait for PostgreSQL to be ready
-docker exec flight-postgres-db pg_isready -U flight_user -d flight_inventory_db
-docker exec flight-postgres-db pg_isready -U flight_user -d flight_booking_db
-
-# 3. Seed data first before starting other services
-cd ../data-seeding
-python seed_flights.py
-
-# 4. Verify data was seeded
-docker exec flight-postgres-db psql -U flight_user -d flight_inventory_db -c "SELECT COUNT(*) FROM flights;"
-
-# 5. Start all services
-cd ../infra
-docker-compose up --build -d
-```
+### Then Follow Quick Start Steps
+After cleanup, follow the **Quick Start** section above for proper startup sequence.
 
 ## Troubleshooting
 
