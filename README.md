@@ -132,10 +132,23 @@ docker volume rm infra_postgres_data infra_redis_data
 
 ### Fresh Start
 ```bash
-docker-compose up --build -d
-# Wait for services to be healthy, then seed data
+# 1. Start database services first
+docker-compose up postgres-db redis-cache -d
+
+# 2. Wait for PostgreSQL to be ready
+docker exec flight-postgres-db pg_isready -U flight_user -d flight_inventory_db
+docker exec flight-postgres-db pg_isready -U flight_user -d flight_booking_db
+
+# 3. Seed data first before starting other services
 cd ../data-seeding
 python seed_flights.py
+
+# 4. Verify data was seeded
+docker exec flight-postgres-db psql -U flight_user -d flight_inventory_db -c "SELECT COUNT(*) FROM flights;"
+
+# 5. Start all services
+cd ../infra
+docker-compose up --build -d
 ```
 
 ## Troubleshooting
