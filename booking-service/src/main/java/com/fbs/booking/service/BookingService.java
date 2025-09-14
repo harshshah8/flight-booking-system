@@ -42,6 +42,7 @@ public class BookingService {
                    request.getFlightId(), request.getNumberOfSeats(), request.getCustomerEmail());
 
         // Step 1: Eager cleanup of expired bookings
+        //TODO :TECH DEBT: This is lazy clean up. Implement CRON which will run in background and do the clean up in next phase
         cleanupExpiredBookings();
 
         // Step 2: Get flight details and calculate total amount
