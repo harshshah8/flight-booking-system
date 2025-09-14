@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - flight-network
     healthcheck:
@@ -100,7 +101,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/flight_inventory_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/flight_booking_db
       SPRING_DATASOURCE_USERNAME: flight_user
       SPRING_DATASOURCE_PASSWORD: flight_password
     depends_on:

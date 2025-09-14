@@ -41,8 +41,11 @@ curl http://localhost:8084/health
 # Redis
 docker exec flight-redis-cache redis-cli ping
 
-# PostgreSQL
+# PostgreSQL - Inventory Database
 docker exec flight-postgres-db pg_isready -U flight_user -d flight_inventory_db
+
+# PostgreSQL - Booking Database
+docker exec flight-postgres-db pg_isready -U flight_user -d flight_booking_db
 ```
 
 ### 3. Seed Initial Data
@@ -55,12 +58,22 @@ python seed_flights.py
 
 ### Search Flights
 ```bash
-curl -X GET "http://localhost:8081/v1/flights/search?origin=NYC&destination=LAX&departureDate=2024-12-01&passengers=2"
+curl -X GET "http://localhost:8081/v1/search?source=NYC&destination=LAX&date=2024-12-01&criteria=CHEAPEST"
 ```
 
 ### Get Flight Details
 ```bash
 curl -X GET "http://localhost:8082/v1/flights/{flightId}"
+```
+
+### Get All Flights
+```bash
+curl -X GET "http://localhost:8082/v1/flights/all"
+```
+
+### Get Flights by Route
+```bash
+curl -X GET "http://localhost:8082/v1/flights/route?source=NYC&destination=LAX"
 ```
 
 ### Create Booking
@@ -141,10 +154,13 @@ docker-compose logs payment-service
 
 ### Database Connection Issues
 ```bash
-# Connect to PostgreSQL
+# Connect to PostgreSQL - Inventory Database
 docker exec -it flight-postgres-db psql -U flight_user -d flight_inventory_db
 
-# Check tables
+# Connect to PostgreSQL - Booking Database
+docker exec -it flight-postgres-db psql -U flight_user -d flight_booking_db
+
+# Check tables (after connecting to desired database)
 \dt
 ```
 
@@ -171,13 +187,16 @@ ports:
 
 ### Search Service (Port 8081)
 - `GET /health` - Health check
-- `GET /v1/flights/search` - Search flights
+- `GET /v1/search` - Search flights (params: source, destination, date, criteria)
 
 ### Inventory Service (Port 8082)
 - `GET /health` - Health check
+- `GET /v1/flights/all` - Get all flights
 - `GET /v1/flights/{flightId}` - Get flight details
-- `POST /v1/flights/{flightId}/reserve-seats` - Reserve seats (internal)
-- `POST /v1/flights/{flightId}/release-seats` - Release seats (internal)
+- `GET /v1/flights/route` - Get flights by route (params: source, destination)
+- `GET /v1/flights/source/{source}` - Get flights by source
+- `POST /v1/flights/{flightId}/reserve-seats` - Reserve seats (param: numberOfSeats)
+- `POST /v1/flights/{flightId}/release-seats` - Release seats (param: numberOfSeats)
 
 ### Booking Service (Port 8083)
 - `GET /health` - Health check
